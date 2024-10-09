@@ -1,0 +1,55 @@
+import numpy as np
+
+# Function to calculate True Positive Rate (TPR) and False Positive Rate (FPR)
+def calculate_tpr_fpr(y_true, y_scores, threshold):
+    # Calculate binary predictions based on the threshold
+    y_pred = np.array([1 if score >= threshold else 0 for score in y_scores])
+
+    # True positives, false positives, true negatives, false negatives
+    TP = np.sum((y_pred == 1) & (y_true == 1))
+    FP = np.sum((y_pred == 1) & (y_true == 0))
+    TN = np.sum((y_pred == 0) & (y_true == 0))
+    FN = np.sum((y_pred == 0) & (y_true == 1))
+
+    # True Positive Rate (TPR) and False Positive Rate (FPR)
+    TPR = TP / (TP + FN) if (TP + FN) > 0 else 0
+    FPR = FP / (FP + TN) if (FP + TN) > 0 else 0
+    
+    return TPR, FPR
+
+# Function to calculate AUC using the trapezoidal rule
+def calculate_auc(y_true, y_scores):
+    # Sort scores and true labels together based on the predicted probabilities
+    sorted_indices = np.argsort(y_scores)[::-1]
+    y_true_sorted = y_true[sorted_indices]
+    y_scores_sorted = y_scores[sorted_indices]
+    
+    # Initialize variables to store TPR, FPR values at different thresholds
+    tpr_list = []
+    fpr_list = []
+    
+    # Loop through unique score thresholds
+    unique_thresholds = np.unique(y_scores_sorted)
+    
+    for threshold in unique_thresholds:
+        TPR, FPR = calculate_tpr_fpr(y_true_sorted, y_scores_sorted, threshold)
+        tpr_list.append(TPR)
+        fpr_list.append(FPR)
+    
+    # Append the last point (1,1) to complete the ROC curve
+    tpr_list.append(0)
+    fpr_list.append(0)
+
+    # Calculate the AUC using the trapezoidal rule
+    auc = 0.0
+    for i in range(1, len(fpr_list)):
+        auc += (fpr_list[i-1] - fpr_list[i]) * (tpr_list[i-1] + tpr_list[i]) / 2
+    
+    return auc
+
+# Example usage:
+y_true = np.array([0, 0, 1, 1, 0, 1, 0, 1])
+y_scores = np.array([0.1, 0.4, 0.35, 0.8, 0.5, 0.9, 0.2, 0.7])
+
+auc_value = calculate_auc(y_true, y_scores)
+print(f"AUC: {auc_value:.2f}")
